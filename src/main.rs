@@ -1,13 +1,7 @@
 mod apierr;
 
-use std::num::ParseIntError;
-
 use axum::{
-    extract::Path,
-    http::{HeaderName, HeaderValue, StatusCode},
-    response::IntoResponse,
-    routing::get,
-    Json, Router, Server,
+    extract::Path, http::StatusCode, response::IntoResponse, routing::get, Json, Router, Server,
 };
 use serde::Serialize;
 
@@ -47,18 +41,20 @@ async fn error_with_custom_feedback(number: Option<Path<String>>) -> Result<impl
         )),
         70.. => Err(format!("The number {number} is too high. Try lower :)")),
     };
-    let not_a_number = |c: StatusCode, err: ParseIntError| {
+    let not_a_number = |c: StatusCode, err| {
         // Let's try JSON and some header manipulation just for fun.
         #[derive(Serialize)]
         struct X {
             err: String,
         }
         let msg = Json(X {
-            err: err.to_string(),
+            err: format!("{err}"),
         });
-        let set_cookie = "Set-Cookie".parse::<HeaderName>().unwrap();
-        let cookie_value = "foo=bar; Max-Age=10; SameSite=Lax".parse::<HeaderValue>().unwrap();
-        Some((c, [(set_cookie, cookie_value)], msg))
+        Some((
+            c,
+            [("Set-Cookie", "foo=bar; Max-Age=10; SameSite=Lax")],
+            msg,
+        ))
     };
 
     let number = match number {
@@ -89,7 +85,7 @@ async fn error_with_custom_feedback(number: Option<Path<String>>) -> Result<impl
 
     // Ok, now, let's check the ranges.
     // (NOTE: transparent_stop is an alias for catch(_, transparent, default_response)).
-    validate_range(number).map_err(transparent_stop(400))
+    validate_range(number).map_err(transparent_stop(StatusCode::BAD_REQUEST))
 }
 
 fn router() -> Router {
