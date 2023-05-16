@@ -1,4 +1,12 @@
 //! Api Error Handling
+//!
+//! You would be particularly interested in these functions
+//! (and I recommend looking at them in this order):
+//! - [`stop`]: Map error, hide it from the user, set status code.
+//! - [`transparent_stop`]: Map error, show the user, set status code.
+//! - [`catch`]: Map error, do custom handling, set status code.
+//!
+//! See also: [`Result::map_err`].
 
 use std::fmt::{Debug, Display};
 
@@ -46,7 +54,9 @@ where
 ///
 /// HINT: For the default response generator (`default`), you can use
 /// [`default_response`] without any problem.
-pub fn catch<C, E, F, R, Z, D>(code: C, handle: F, default: D) -> impl FnOnce(E) -> Response
+///
+/// NOTE: There are no restrictions on the type of the error.
+pub fn catch<C, D, E, F, R, Z>(code: C, handle: F, default: D) -> impl FnOnce(E) -> Response
 where
     C: TryInto<StatusCode, Error = Z>,
     D: Fn(StatusCode) -> Response,
